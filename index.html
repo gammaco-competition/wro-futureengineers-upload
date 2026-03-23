@@ -252,27 +252,25 @@
         const response = await fetch(`${WEB_APP_URL}?action=getInitialData`);
         const data = await response.json();
         
-        // ใช้เวลาจาก Server เป็นหลัก
         const now = data.config.serverTime; 
 
-        // ตรวจสอบเวลาเปิด-ปิด
         if (now < data.config.open) {
-          if(loader) loader.remove();
-          showStatusPage("Coming Soon", "เปิดให้อัพโหลดผลงานได้วันที่ 1 มิถุนายน 2569 เวลา 09.00 น.", "https://img2.pic.in.th/Gemini_Generated_Image_ppt91xppt91xppt9.png");
+          showStatusPage("Coming Soon", "เปิดให้อัพโหลดผลงานได้วันที่ 1 มีนาคม 2569 เวลา 09.00 น.", "https://img2.pic.in.th/Gemini_Generated_Image_ppt91xppt91xppt9.png");
           return;
         }
 
         if (now > data.config.close) {
-          if(loader) loader.remove();
           showStatusPage("Closed", "ระบบปิดให้อัพโหลดผลงานแล้ว", "https://img2.pic.in.th/Gemini_Generated_Image_ppt91xppt91xppt9.png");
           return;
         }
 
-        // สถานะปกติ: โหลด Dropdown
+        // --- แก้ไขจุดนี้ ---
         globalData = data.dropDown;
-        setupDropdowns(globalData);
+        dropDownList(globalData); // เปลี่ยนจาก setupDropdowns เป็น dropDownList
         
-        // [IMPORTANT] ซ่อน Loader และแสดงเนื้อหาหลักเมื่อทุกอย่างพร้อม
+        // แสดงยอดสรุปบนหน้าเว็บ
+        if(data.summary) document.getElementById('summaryDisplay').innerText = data.summary;
+
         if(loader) loader.style.display = 'none';
         if(mainContent) mainContent.style.display = 'block';
         
