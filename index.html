@@ -395,33 +395,33 @@
     }
 
     function submitForm() {
-      event.preventDefault();
-      $('#btn1').hide();
-      $('#btn2').show();
+  event.preventDefault();
+  $('#btn1').hide();
+  $('#btn2').show();
 
-      let obj = {
-        data1: $('#colA').val(),
-        data2: $('#colB').val(),
-        data3: $('#colC').val(),
-        data4: $('#colD').val(),
-        data5: $('#data5').val(),
-        data6: $('#data6').val()
-      };
+  let obj = {
+    data1: "Future Engineers", // ป้อนค่าคงที่ตรงนี้แทนการดึงจาก ID (ให้ตรงกับชื่อ Category ในคอลัมน์ A ของชีต)
+    data2: $('#colB').val(),
+    data3: $('#colC').val(),
+    data4: $('#colD').val(),
+    data5: $('#data5').val(),
+    data6: $('#data6').val()
+  };
 
-      let file = document.getElementById("file").files[0];
-      if (file) {
-        let reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = function() {
-          obj.imagedata = reader.result.split(',')[1];
-          obj.filename = file.name;
-          obj.filetype = file.type;
-          savedata(obj);
-        }
-      } else {
-        savedata(obj);
-      }
+  let file = document.getElementById("file").files[0];
+  if (file) {
+    let reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = function() {
+      obj.imagedata = reader.result.split(',')[1];
+      obj.filename = file.name;
+      obj.filetype = file.type;
+      savedata(obj);
     }
+  } else {
+    savedata(obj);
+  }
+}
 
     function savedata(obj) {
       google.script.run.withSuccessHandler(function() {
