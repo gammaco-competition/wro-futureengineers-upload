@@ -387,21 +387,63 @@
     }
 
     function savedata(obj) {
-      google.script.run.withSuccessHandler(function() {
-        document.getElementById("myForm").reset();
+  // ตรวจสอบว่าหน้าเว็บมีคำสั่ง google.script.run หรือไม่ (ถ้ารันบน Google จะมี)
+  if (typeof google !== 'undefined' && google.script && google.script.run) {
+    
+    // === [ช่องทางที่ 1] ทำงานบน Google Web App (ใช้ระบบเดิม) ===
+    google.script.run.withSuccessHandler(function() {
+      successAction();
+    }).saveData(obj);
+
+  } else {
+    
+    // === [ช่องทางที่ 2] ทำงานบน GitHub (ยิงข้อมูลผ่าน Fetch API เข้า doPost) ===
+    fetch(WEB_APP_URL, {
+      method: "POST",
+      body: JSON.stringify(obj),
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8" // จำเป็นต้องใช้ text/plain เพื่อหลีกเลี่ยงปัญหา CORS ข้ามโดเมน
+      }
+    })
+    .then(response => response.json())
+    .then(result => {
+      if (result.status === "success") {
+        successAction();
+      } else {
+        alert("เกิดข้อผิดพลาดจากระบบ: " + result.message);
         $('#btn1').show();
         $('#btn2').hide();
-        Swal.fire({
-          icon: 'success',
-          title: 'ส่งผลงานสำเร็จ',
-          html: '<p style="color: #009fe3;">ข้อมูลของคุณถูกบันทึกเรียบร้อยแล้ว</p>',
-          timer: 3000,
-          showConfirmButton: false
-        });
-        // อัปเดตยอดสรุปใหม่
-        google.script.run.withSuccessHandler(function(t){ document.getElementById('summaryDisplay').innerText = t; }).getSummaryStats();
-      }).saveData(obj);
-    }
+      }
+    })
+    .catch(err => {
+      console.error("Fetch Error:", err);
+      alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ (CORS หรือ URL ผิดพลาด)");
+      $('#btn1').show();
+      $('#btn2').hide();
+    });
+  }
+}
+
+// แยกฟังก์ชันการเคลียร์หน้าจอและการแสดง SweetAlert ออกมาเพื่อให้เรียกใช้ง่ายขึ้น
+function successAction() {
+  document.getElementById("myForm").reset();
+  $('#btn1').show();
+  $('#btn2').hide();
+  Swal.fire({
+    icon: 'success',
+    title: 'ส่งผลงานสำเร็จ',
+    html: '<p style="color: #009fe3;">ข้อมูลของคุณถูกบันทึกเรียบร้อยแล้ว</p>',
+    timer: 3000,
+    showConfirmButton: false
+  });
+  
+  // อัปเดตยอดสรุป (เฉพาะเมื่อทำงานบน Google Apps Script)
+  if (typeof google !== 'undefined' && google.script && google.script.run) {
+    google.script.run.withSuccessHandler(function(t){ 
+      if(document.getElementById('summaryDisplay')) document.getElementById('summaryDisplay').innerText = t; 
+    }).getSummaryStats();
+  }
+}
 
     document.getElementById("btnStatus").addEventListener("click", function() {
       window.open("https://gammaco.co.th/wro/teams-status-future-innovators/", "_blank");
