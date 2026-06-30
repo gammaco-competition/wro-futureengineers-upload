@@ -399,8 +399,9 @@
       $('#btn1').hide();
       $('#btn2').show();
 
+      // บังคับกำหนดค่าให้ตรงกับชื่อกลุ่มในคอลัมน์ A ของไฟล์ Sheet เพื่อป้องกันการดึงค่าผิดพลาด
       let obj = {
-        data1: $('#colA').val(),
+        data1: "Future Engineers", 
         data2: $('#colB').val(),
         data3: $('#colC').val(),
         data4: $('#colD').val(),
@@ -424,42 +425,70 @@
     }
 
     function savedata(obj) {
-  // ตรวจสอบว่าหน้าเว็บมีคำสั่ง google.script.run หรือไม่ (ถ้ารันบน Google จะมี)
-  if (typeof google !== 'undefined' && google.script && google.script.run) {
-    
-    // === [ช่องทางที่ 1] ทำงานบน Google Web App (ใช้ระบบเดิม) ===
-    google.script.run.withSuccessHandler(function() {
-      successAction();
-    }).saveData(obj);
+      // ช่องทางที่ 1: ทำงานภายใต้สภาพแวดล้อม Google Web App (รันตรงๆ บนสคริปต์)
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run.withSuccessHandler(function(result) {
+          if (result && result.status === "error") {
+            alert("เกิดข้อผิดพลาด: " + result.message);
+            $('#btn1').show();
+            $('#btn2').hide();
+          } else {
+            successAction();
+          }
+        }).saveData(obj);
 
-  } else {
-    
-    // === [ช่องทางที่ 2] ทำงานบน GitHub (ยิงข้อมูลผ่าน Fetch API เข้า doPost) ===
-    fetch(WEB_APP_URL, {
-      method: "POST",
-      body: JSON.stringify(obj),
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8" // จำเป็นต้องใช้ text/plain เพื่อหลีกเลี่ยงปัญหา CORS ข้ามโดเมน
-      }
-    })
-    .then(response => response.json())
-    .then(result => {
-      if (result.status === "success") {
-        successAction();
       } else {
-        alert("เกิดข้อผิดพลาดจากระบบ: " + result.message);
-        $('#btn1').show();
-        $('#btn2').hide();
+        // ช่องทางที่ 2: ทำงานภายนอกระบบ เช่น เปิดผ่าน GitHub Pages
+        // เพิ่มโหมด no-cors และ redirect: follow เพื่อแก้ไขข้อจำกัดนโยบายความปลอดภัยระหว่างโดเมน
+        fetch(WEB_APP_URL, {
+          method: "POST",
+          mode: "no-cors",
+          redirect: "follow",
+          body: JSON.stringify(obj),
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          }
+        })
+        .then(response => {
+          // ในโหมด no-cors เราจะไม่สามารถอ่านเนื้อหา json ที่ตอบกลับมาได้โดยตรง 
+          // หากยิงผ่านและไม่มีสถานะเน็ตเวิร์กพัง ให้ถือว่าส่งข้อมูลเสร็จสิ้น
+          successAction();
+        })
+        .catch(err => {
+          console.error("Fetch Error:", err);
+          Swal.fire({
+            icon: 'error',
+            title: 'เกิดข้อผิดพลาด',
+            text: 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ระบบได้ กรุณาลองใหม่อีกครั้ง'
+          });
+          $('#btn1').show();
+          $('#btn2').hide();
+        });
       }
-    })
-    .catch(err => {
-      console.error("Fetch Error:", err);
-      alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ (CORS หรือ URL ผิดพลาด)");
+    }
+
+    // === ฟังก์ชันสำหรับจัดการหน้าจอเมื่อส่งข้อมูลสำเร็จ (เพิ่มกลับเข้ามาเพื่อให้ระบบทำงานได้ครบวงจร) ===
+    function successAction() {
+      document.getElementById("myForm").reset();
       $('#btn1').show();
       $('#btn2').hide();
-    });
-  }
-}
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'ส่งผลงานสำเร็จ',
+        html: '<p style="color: #009fe3;">ข้อมูลของคุณถูกบันทึกเรียบร้อยแล้ว</p>',
+        timer: 3000,
+        showConfirmButton: false
+      });
+
+      // อัปเดตยอดสรุปสะสมใหม่ (จะทำงานเฉพาะตอนรันบนระบบ Google)
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run.withSuccessHandler(function(t){ 
+          let summaryElement = document.getElementById('summaryDisplay');
+          if (summaryElement) summaryElement.innerText = t; 
+        }).getSummaryStats();
+      }
+    }
 
     document.getElementById("btnStatus").addEventListener("click", function() {
       window.open("https://gammaco.co.th/wro/teams-status-future-innovators/", "_blank");
